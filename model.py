@@ -140,6 +140,7 @@ class Model():
             y_pred = 1 if y_logit >= self.threshold else 0
             y_preds.append(y_pred)
             accuracy += 1 if y_pred==y else 0
+            grad_y = np.clip(grad_y, -1, 1)
             grad_y = self.weights[0] * grad_y + input.reshape(11, 1) # 11*1
 
             grad += self.CrossEntropy_grad(y, y_logit) * self.sigmoid_grad(y_logit) * grad_y # 11x1 Sum of loss at each token

@@ -2,8 +2,8 @@ import json
 from sklearn.model_selection import train_test_split
 from model import *
 
-def train(train_data, test_data, epochs, learnin_rate=1.0, threshold=0.0):
-    model = Model(learning_rate=learnin_rate, threshold=threshold) 
+def train(train_data, test_data, epochs, learning_rate=1.0, threshold=0.0):
+    model = Model(learning_rate=learning_rate, threshold=threshold) 
 
     for epoch in range(epochs):
         total_loss = 0
@@ -35,11 +35,4 @@ if __name__ == "__main__":
     with open('test.jsonl') as f:
         test_data = [json.loads(line) for line in f]
 
-    train(train_data=train_data, test_data=test_data, epochs=3, learnin_rate=0.1, threshold=0.5)
-
-    # model.train(train_data, epochs)
-    # model.load_weights()
-    
-    # model.test(test_data)
-    # print('Model Weights:')
-    # print(model.weights)
+    train(train_data=train_data, test_data=test_data, epochs=3, learning_rate=0.1, threshold=0.5)
