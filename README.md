@@ -1,1 +1,1 @@
-# -POS-tag-Implementation-of-Recurrent-Perceptron
+# POS-tag-Implementation-using-Recurrent-Perceptron
