@@ -1,6 +1,8 @@
 import numpy as np
 import json
 
+import pickle
+
 # def preprocess(data):
 #     for line in data:
 #         line['token'] = ['^'] + line['token']
@@ -127,6 +129,7 @@ if __name__ == "__main__":
         print(f"Epoch {epoch}/{epochs}\tLoss {loss}\tAccuracy {acc}")
 
     print('Weights: ', model.weights)
+
 
 
 

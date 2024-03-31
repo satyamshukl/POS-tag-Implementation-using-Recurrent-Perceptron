@@ -24,17 +24,17 @@ class Model():
     
     
     def CrossEntropy(self, y, y_hat):
-        y_hat = np.clip(y_hat, 1e-15, 1 - 1e-15)
+        y_hat = np.clip(y_hat, 1e-20, 1 - 1e-20)
         return (-y * np.log(y_hat) - (1 - y) * np.log(1 - y_hat))
     
     
     def CrossEntropy_grad(self, y, y_hat):
-        y_hat = np.clip(y_hat, 1e-15, 1 - 1e-15)
+        y_hat = np.clip(y_hat, 1e-20, 1 - 1e-20)
         return -(y / y_hat) + ((1 - y) / (1 - y_hat))
     
 
     def sigmoid_grad(self, y_hat):
-        return y_hat * (1  - y_hat)
+        return y_hat * (1 - y_hat)
 
 
     def evaluate(self, y_pred, y):
@@ -66,8 +66,8 @@ class Model():
 
     def get_pos_tags(self, sentence):
         preprocessed_tokens = self.preprocess_text(sentence)
-        pos_tags = nltk.pos_tag(preprocessed_tokens)
-        convert = {"NN":1, "NNS": 1, "NNP":1, "NNPS":1, "JJR":3, "JJS":3 , "DT":2, "JJ":3}
+        pos_tags = nltk.pos_tag(preprocessed_tokens, tagset='universal')
+        convert = {"NN":1, "DT":2, "JJ":3}
         output = [convert.get(i[1], 4) for i in pos_tags]
 
         return output
@@ -139,14 +139,16 @@ class Model():
 
             y = chunk_tags[i]
             z = np.matmul(input, self.weights)[0]
-            z = np.clip(z, -10, 10)
+            # z = np.clip(z, -10, 10)
             y_logit = self.sigmoid(z)
             y_pred = 1 if y_logit >= self.threshold else 0
             y_preds.append(y_pred)
             accuracy += 1 if y_pred==y else 0
             grad_y = np.clip(grad_y, -1, 1)
-            grad_y = self.momentum * grad_y + input.reshape(11, 1)
-            grad += self.CrossEntropy_grad(y, y_logit) * self.sigmoid_grad(y_logit) * grad_y
+            grad_y = grad_y + input.reshape(11, 1)
+            # print(self.sigmoid_grad(y_logit))
+            grad += float(self.CrossEntropy_grad(y, y_logit)) * float(self.sigmoid_grad(y_logit)) * grad_y
+            # raise AssertionError
             loss += self.CrossEntropy(y, y_logit)
         
         grad /= len(pos_tags)

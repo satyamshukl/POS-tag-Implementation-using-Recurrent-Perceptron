@@ -48,14 +48,26 @@ def train(train_data, test_data, epochs, learning_rate=0.1, momentum=0.9, thresh
         # Evaluate on test data after each epoch
         total_test_loss = 0
         test_predictions, test_truth = [], []
+        wrong_predictions_test = []
         for x in test_data:
             y_preds, loss = model.forward(x)
             test_predictions += y_preds
             test_truth += x['chunk_tags']
             total_test_loss += loss
 
+            if y_preds != x['chunk_tags']:  # If prediction is wrong
+                wrong_predictions_test.append({
+                    "tokens": x["tokens"],
+                    "pos_tags": x["pos_tags"],
+                    "actual_chunk_tags": x["chunk_tags"],
+                    "predicted_chunk_tags": y_preds
+                })
+
         total_test_loss /= len(test_data)
         test_precision, test_recall, test_accuracy, test_f1score = model.evaluate(test_predictions, test_truth)
+        classification_report_str = classification_report(test_truth, test_predictions, output_dict=True)
+        save_classification_report(classification_report_str, f'test_classification_report')
+        save_wrong_predictions(wrong_predictions_test, f'wrong_predictions_test')
 
         # Save performance metrics for the test data
         epoch_test_losses.append(total_test_loss)
@@ -88,10 +100,10 @@ def train(train_data, test_data, epochs, learning_rate=0.1, momentum=0.9, thresh
 
 
 if __name__ == "__main__":
-    with open('train.jsonl') as f:
+    with open('filtered_output.jsonl') as f:
         train_data = [json.loads(line) for line in f]
 
-    with open('test.jsonl') as f:
+    with open('filtered_output.jsonl') as f:
         test_data = [json.loads(line) for line in f]
 
-    train(train_data=train_data, test_data=test_data, epochs=3, learning_rate=0.1, momentum=0.9, threshold=0.5)
+    train(train_data=train_data, test_data=test_data, epochs=2, learning_rate=0.1, momentum=0.9, threshold=0.5)
