@@ -5,8 +5,7 @@ np.random.seed(41)
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 import nltk
 from nltk.tokenize import word_tokenize
-# nltk.download('punkt') 
-# nltk.download('averaged_perceptron_tagger')
+
 
 class Model():
     def __init__(self, learning_rate=0.1, momentum=0.9, threshold=0.5) -> None:
@@ -16,6 +15,8 @@ class Model():
         self.grad = np.zeros((11, 1))
         self.prev_grad = np.zeros((11, 1))
         self.threshold = threshold
+        nltk.download('punkt') 
+        nltk.download('averaged_perceptron_tagger')
         
 
     def sigmoid(self, z):
@@ -85,6 +86,7 @@ class Model():
 
     def inference(self, sentence):
         pos_tags = self.get_pos_tags(sentence)
+        # print(pos_tags)
         y_preds = []
         sos = np.array([1])
         y_pred = 0
@@ -112,7 +114,7 @@ class Model():
         if s:output.append(s)
         output = " ".join(output)
 
-        return y_preds, output
+        return pos_tags, y_preds, output
     
 
     def forward(self, x, train=False):
