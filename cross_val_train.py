@@ -79,6 +79,7 @@ def train(train_data, test_data, epochs, learning_rate=1.0, threshold=0.0):
                         })
 
                 classification_report_str = classification_report(val_truth, val_predictions, output_dict=True)
+                print(classification_report(val_truth, val_predictions))
                 save_classification_report(classification_report_str, f'classification_report_fold_{fold}')
 
         # Append performance metrics for the current fold
@@ -89,8 +90,10 @@ def train(train_data, test_data, epochs, learning_rate=1.0, threshold=0.0):
         fold_f1_scores.append(epoch_f1_scores)
 
         weights.append(model.weights)
+        
+        os.system('python3 condition.py')
 
-        model.load_weights()
+        model.save_weights(cross_val=True)
 
         print(f"\nValidation Score for Fold {fold}:")
         model.test(val_fold)
@@ -126,6 +129,7 @@ def train(train_data, test_data, epochs, learning_rate=1.0, threshold=0.0):
 
     # Update model weights as the average of all fold weights
     model.weights = np.mean([weight for weight in weights], axis=0)
+    model.save_weights(cross_val=True)
 
     print()
     print("*"*80)
@@ -152,6 +156,8 @@ def train(train_data, test_data, epochs, learning_rate=1.0, threshold=0.0):
             })
 
     classification_report_str = classification_report(test_truth, test_predictions, output_dict=True)
+    
+    print(classification_report(test_truth, test_predictions))
     save_classification_report(classification_report_str, 'classification_report_cross_val_test')
     save_wrong_predictions(wrong_predictions_test, 'wrong_predictions_cross_val_test')
 

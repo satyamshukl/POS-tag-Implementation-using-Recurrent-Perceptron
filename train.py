@@ -8,7 +8,7 @@ from model import *
 from utility import *
 
 
-def train(train_data, test_data, epochs, learning_rate=0.1, momentum=0.9, threshold=0.5):
+def train(train_data, test_data, epochs, learning_rate=0.001, momentum=0.8, threshold=0.5):
     model = Model(learning_rate=learning_rate, momentum=momentum, threshold=threshold)
 
     # Initialize lists to store performance metrics for each epoch
@@ -75,6 +75,8 @@ def train(train_data, test_data, epochs, learning_rate=0.1, momentum=0.9, thresh
         epoch_test_precisions.append(test_precision)
         epoch_test_recalls.append(test_recall)
         epoch_test_f1_scores.append(test_f1score)
+        
+        print(classification_report(test_truth, test_predictions))
 
         print(f"Epoch {epoch + 1}/{epochs}:")
         print("Training Metrics:")
@@ -82,7 +84,7 @@ def train(train_data, test_data, epochs, learning_rate=0.1, momentum=0.9, thresh
         print("Testing Metrics:")
         model.print_score(test_precision, test_recall, test_accuracy, test_f1score, total_test_loss)
 
-    model.load_weights()
+    model.save_weights()
 
     # Plot performance metrics across all epochs for training data
     plot_performance_metrics(epoch_train_losses, "Loss", "train_loss")
@@ -106,4 +108,4 @@ if __name__ == "__main__":
     with open('test.jsonl') as f:
         test_data = [json.loads(line) for line in f]
 
-    train(train_data=train_data, test_data=test_data, epochs=10, learning_rate=0.01, momentum=0.009, threshold=0.5)
+    train(train_data=train_data, test_data=test_data, epochs=2, learning_rate=0.01, momentum=0.009, threshold=0.5)
