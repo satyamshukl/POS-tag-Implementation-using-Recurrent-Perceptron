@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 
-np.random.seed(41)
+np.random.seed(123)
 
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 import nltk
@@ -16,6 +16,7 @@ class Model():
         self.grad = np.zeros((11, 1))
         self.prev_grad = np.zeros((11, 1))
         self.threshold = threshold
+        self.prev_grad = np.zeros((11, 1))
         # nltk.download('punkt') 
         # nltk.download('averaged_perceptron_tagger')
         
@@ -118,7 +119,7 @@ class Model():
         return pos_tags, y_preds, output
     
 
-    def forward(self, x, train=False):
+    def forward(self, x, train=True):
         pos_tags, chunk_tags = x["pos_tags"], x["chunk_tags"]
         y, y_pred, sos, loss, accuracy = 0, 0, np.array([1]), 0, 0
         y_preds = []
@@ -156,21 +157,23 @@ class Model():
             grad_y = np.clip(grad_y, -1, 1) * self.weights[0,0]
             grad_y = grad_y + input.reshape(11, 1)
             # print(self.sigmoid_grad(y_logit))
-            # grad += float(y_logit - y) * (y_logit * (y_logit)) * grad_y
-            grad += float(self.CrossEntropy_grad(y=y, y_hat=y_logit)) * float(self.sigmoid_grad(y_hat=y_logit)) * grad_y
+            grad += float(y_logit - y) * (y_logit * (1 - y_logit)) * grad_y
+            # grad += float(self.CrossEntropy_grad(y=y, y_hat=y_logit)) * float(self.sigmoid_grad(y_hat=y_logit)) * grad_y
             grad_ts[i] = copy.deepcopy(grad)
             # raise AssertionError
             loss += self.CrossEntropy(y, y_logit)
         
         self.grad = grad_ts.mean(axis=0)
         accuracy /= len(pos_tags)
-        self.save_weights()
+        if train:
+            self.save_weights()
 
         return y_preds, loss / len(pos_tags)
     
     
     def backward(self):
-        self.weights -= self.learning_rate * self.grad
+        self.prev_grad = self.momentum * self.prev_grad + self.learning_rate * self.grad
+        self.weights -= self.prev_grad
 
 
     def train(self, data, epochs):
