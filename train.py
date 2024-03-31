@@ -1,135 +1,97 @@
-import numpy as np
+import os
 import json
-
-# def preprocess(data):
-#     for line in data:
-#         line['token'] = ['^'] + line['token']
-
-class SingleRecurrentPerceptron:
-    def __init__(self, learning_rate=0.1) -> None:
-        self.learning_rate = learning_rate
-        self.weights = np.random.rand(11, 1)
-        pass
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report
+from model import *
+from utility import *
 
 
-    def loss(self, predicted, target):
-        """
-        Predicted is a list (for all timesteps)
-        target is also a list
-        """
-        loss = 0
-        for idx, val in enumerate(predicted):
-            loss += (((target[idx] - val) ** 2)/2)
-        loss = loss / len(predicted)
+def train(train_data, test_data, epochs, learning_rate=0.1, momentum=0.9, threshold=0.5):
+    model = Model(learning_rate=learning_rate, momentum=momentum, threshold=threshold)
 
-        return loss
-    
-            
-    
-    def create_one_hot(self, n, max=4):
-        x = np.zeros(max)
-        x[n - 1] = 1
+    # Initialize lists to store performance metrics for each epoch
+    epoch_train_losses = []
+    epoch_train_accuracies = []
+    epoch_train_precisions = []
+    epoch_train_recalls = []
+    epoch_train_f1_scores = []
 
-        return x
+    epoch_test_losses = []
+    epoch_test_accuracies = []
+    epoch_test_precisions = []
+    epoch_test_recalls = []
+    epoch_test_f1_scores = []
 
-    
+    for epoch in range(epochs):
+        total_train_loss = 0
+        train_predictions, train_truth = [], []
+        for x in train_data:
+            y_preds, loss = model.forward(x, train=True)
+            y = x['chunk_tags']
+            train_predictions += y_preds
+            train_truth += y
+            total_train_loss += loss
+            model.backward()
 
-    def train(self, data, train=True, threshold=0.0):
-        total_loss = 0.0
-        acc = 0.0
-        for p, example in enumerate(data):
-            # print(f'\nExample {p}')
-            pos_tags = example["pos_tags"]
-            chunk_tags = example["chunk_tags"]
-            target = np.array([0])
-            predicted = np.array([0])
-            start = np.array([1])
-            logits_list = []   
-            example_loss = 0
-            acc_temp = 0.0
-            grad_y = np.zeros((11, 1))
-            grad = np.zeros((11, 1))
-            for i, pos_tag in enumerate(pos_tags):
-                # print('Time step ', i)        
-                if i > 0:
-                    start = [0]
-                    one_hot_prev_pos_tag = self.create_one_hot(pos_tags[i-1])
-                    # one_hot_prev_pos_tag[3] = 1 
-                else:
-                    one_hot_prev_pos_tag = np.zeros(4)
+        total_train_loss /= len(train_data)
+        train_precision, train_recall, train_accuracy, train_f1score = model.evaluate(train_predictions, train_truth)
 
-                one_hot_curr_pos_tag = self.create_one_hot(pos_tag)
-                # print(f'target: {target}')
-                # print(f'target shape: {target.shape}')
+        # Save performance metrics for the training data
+        epoch_train_losses.append(total_train_loss)
+        epoch_train_accuracies.append(train_accuracy)
+        epoch_train_precisions.append(train_precision)
+        epoch_train_recalls.append(train_recall)
+        epoch_train_f1_scores.append(train_f1score)
 
+        # Evaluate on test data after each epoch
+        total_test_loss = 0
+        test_predictions, test_truth = [], []
+        for x in test_data:
+            y_preds, loss = model.forward(x)
+            test_predictions += y_preds
+            test_truth += x['chunk_tags']
+            total_test_loss += loss
 
-                if train:
-                    # input = target + start + one_hot_prev_pos_tag + one_hot_curr_pos_tag
-                    input = np.concatenate((target, start, one_hot_prev_pos_tag, one_hot_curr_pos_tag, np.array([-1.0])))
-                else:
-                    # input = predicted + start + one_hot_prev_pos_tag + one_hot_curr_pos_tag
-                    input = np.concatenate((predicted, start, one_hot_prev_pos_tag, one_hot_curr_pos_tag, np.array([-1.0])))                
+        total_test_loss /= len(test_data)
+        test_precision, test_recall, test_accuracy, test_f1score = model.evaluate(test_predictions, test_truth)
 
-                target = np.array([chunk_tags[i]])
-                logits = np.matmul(input, self.weights)
-                predicted = self.predict(logits)
-                acc_temp += (1 if (int(predicted[0]) == int(target[0])) else 0)
+        # Save performance metrics for the test data
+        epoch_test_losses.append(total_test_loss)
+        epoch_test_accuracies.append(test_accuracy)
+        epoch_test_precisions.append(test_precision)
+        epoch_test_recalls.append(test_recall)
+        epoch_test_f1_scores.append(test_f1score)
 
-                grad_y = self.weights[0] * grad_y + input.reshape(11, 1) # 11*1
+        print(f"Epoch {epoch + 1}/{epochs}:")
+        print("Training Metrics:")
+        model.print_score(train_precision, train_recall, train_accuracy, train_f1score, total_train_loss)
+        print("Testing Metrics:")
+        model.print_score(test_precision, test_recall, test_accuracy, test_f1score, total_test_loss)
 
-                grad += (logits - target) * grad_y # 11x1 Sum of loss at each token
+    model.load_weights()
 
-                # logits_list.append(logits[0])
-                example_loss += ((logits[0]-target[0])**2)/2
-                # example_loss += self.loss(logits_list, chunk_tags)
+    # Plot performance metrics across all epochs for training data
+    plot_performance_metrics(epoch_train_losses, "Loss", "train_loss")
+    plot_performance_metrics(epoch_train_accuracies, "Accuracy", "train_accuracy")
+    plot_performance_metrics(epoch_train_precisions, "Precision", "train_precision")
+    plot_performance_metrics(epoch_train_recalls, "Recall", "train_recall")
+    plot_performance_metrics(epoch_train_f1_scores, "F1-score", "train_f1_score")
 
-            grad /= len(pos_tags)
-            acc_temp /= len(pos_tags)
-            acc += acc_temp
+    # Plot performance metrics across all epochs for test data
+    plot_performance_metrics(epoch_test_losses, "Loss", "test_loss")
+    plot_performance_metrics(epoch_test_accuracies, "Accuracy", "test_accuracy")
+    plot_performance_metrics(epoch_test_precisions, "Precision", "test_precision")
+    plot_performance_metrics(epoch_test_recalls, "Recall", "test_recall")
+    plot_performance_metrics(epoch_test_f1_scores, "F1-score", "test_f1_score")
 
-            self.backward(grad)
-
-            example_loss /= len(pos_tags)
-            total_loss += example_loss
-            # total_loss += self.loss(logits_list, chunk_tags)
-
-
-        total_loss /= len(data)
-        acc /= len(data)
-
-        return total_loss, acc
-
-
-    def predict(self, logits, threshold=0.5):
-        # print('Logits: ', logits)
-        if float(logits[0]) >= threshold:
-            predicted = [1]
-        else:
-            predicted = [0]
-
-        return predicted
-    
-
-    def backward(self, grad):
-        self.weights -= self.learning_rate * grad
-
-            
 
 if __name__ == "__main__":
     with open('train.jsonl') as f:
-        data = [json.loads(line) for line in f]
+        train_data = [json.loads(line) for line in f]
 
-    model = SingleRecurrentPerceptron()
-    epochs = 5
+    with open('test.jsonl') as f:
+        test_data = [json.loads(line) for line in f]
 
-    for epoch in range(epochs):
-        loss, acc = model.train(data)
-        print(f"Epoch {epoch}/{epochs}\tLoss {loss}\tAccuracy {acc}")
-
-    print('Weights: ', model.weights)
-
-
-
-
-
-
+    train(train_data=train_data, test_data=test_data, epochs=3, learning_rate=0.1, momentum=0.9, threshold=0.5)

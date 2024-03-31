@@ -1,6 +1,6 @@
 import numpy as np
 
-np.random.seed(123)
+np.random.seed(41)
 
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 import nltk
@@ -9,13 +9,14 @@ from nltk.tokenize import word_tokenize
 # nltk.download('averaged_perceptron_tagger')
 
 class Model():
-    def __init__(self, learning_rate=0.1, threshold=0.5) -> None:
+    def __init__(self, learning_rate=0.1, momentum=0.9, threshold=0.5) -> None:
         self.learning_rate = learning_rate
+        self.momentum = momentum
         self.weights = np.random.rand(11, 1)
         self.grad = np.zeros((11, 1))
+        self.prev_grad = np.zeros((11, 1))
         self.threshold = threshold
-        pass
-
+        
 
     def sigmoid(self, z):
         return 1 / (1 + np.exp(-z))
@@ -72,7 +73,7 @@ class Model():
     
     
     def print_score(self, precision, recall, accuracy, f1score, loss):
-        print(f"Precision: {precision:.4f}, Recall: {recall:.4f}, Accuracy: {accuracy:.4f}, F1-score: {f1score:.4f}, Loss: {loss:.4f}")
+        print(f"Precision {precision:.4f}, Recall {recall:.4f}, Accuracy {accuracy:.4f}, F1-score {f1score:.4f}, Loss {loss:.4f}")
 
 
     def create_one_hot(self, n, max=4):
@@ -136,17 +137,15 @@ class Model():
 
             y = chunk_tags[i]
             z = np.matmul(input, self.weights)[0]
+            z = np.clip(z, -10, 10)
             y_logit = self.sigmoid(z)
             y_pred = 1 if y_logit >= self.threshold else 0
             y_preds.append(y_pred)
             accuracy += 1 if y_pred==y else 0
             grad_y = np.clip(grad_y, -1, 1)
-            grad_y = self.weights[0] * grad_y + input.reshape(11, 1) # 11*1
-
-            grad += self.CrossEntropy_grad(y, y_logit) * self.sigmoid_grad(y_logit) * grad_y # 11x1 Sum of loss at each token
-            # loss += ((y_logit - y)**2)/2
+            grad_y = self.momentum * grad_y + input.reshape(11, 1)
+            grad += self.CrossEntropy_grad(y, y_logit) * self.sigmoid_grad(y_logit) * grad_y
             loss += self.CrossEntropy(y, y_logit)
-
         
         grad /= len(pos_tags)
         self.grad = grad
@@ -190,5 +189,5 @@ class Model():
     
         total_loss /= len(data)
         precision, recall, accuracy, f1score = self.evaluate(predictions, truth)
-        print(f"\n\nTest Score is : ")
+        # print(f"\n\nTest Score is : ")
         self.print_score(precision, recall, accuracy, f1score, total_loss)

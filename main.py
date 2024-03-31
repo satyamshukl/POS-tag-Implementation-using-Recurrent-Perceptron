@@ -1,38 +1,29 @@
-import json
-from sklearn.model_selection import train_test_split
-from model import *
+import sys
+import os
 
-def train(train_data, test_data, epochs, learning_rate=1.0, threshold=0.0):
-    model = Model(learning_rate=learning_rate, threshold=threshold) 
+def run_python_file(file_path):
+    if os.path.exists(file_path) and file_path.endswith('.py'):
+        try:
+            os.system(f"python3 {file_path}")
+        except Exception as e:
+            print(f"An error occurred while running the file: {e}")
+    else:
+        print("Invalid file path or file is not a Python file.")
 
-    for epoch in range(epochs):
-        total_loss = 0
-        predictions, truth = [], []
-        for x in train_data:
-            y_preds, loss = model.forward(x, train=True)
-            y = x['chunk_tags']
-            predictions += y_preds
-            truth += y
-            total_loss += loss
-            model.backward()
-        
-        total_loss /= len(train_data)
-        precision, recall, accuracy, f1score = model.evaluate(predictions, truth)
-        print(f"\n\nScore at epoch : {epoch}")
-        model.print_score(precision, recall, accuracy, f1score, total_loss)
+def main():
+    print("Choose a Python file to run:")
+    print("1. train.py")
+    print("2. cross_val_train.py")
+    choice = input("Enter the number corresponding to your choice: ")
+    print()
+    print('Starting Training...')
 
-    model.load_weights()
-
-    model.test(test_data)
-    print('Model Weights:')
-    print(model.weights)
-
+    if choice == "1":
+        run_python_file("train.py")
+    elif choice == "2":
+        run_python_file("cross_val_train.py")
+    else:
+        print("Invalid choice. Please enter either '1' or '2'.")
 
 if __name__ == "__main__":
-    with open('train.jsonl') as f:
-        train_data = [json.loads(line) for line in f]
-
-    with open('test.jsonl') as f:
-        test_data = [json.loads(line) for line in f]
-
-    train(train_data=train_data, test_data=test_data, epochs=3, learning_rate=0.1, threshold=0.5)
+    main()
