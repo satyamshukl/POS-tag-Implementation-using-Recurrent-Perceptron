@@ -7,14 +7,27 @@ with open('train.jsonl') as f:
 with open('test.jsonl') as f:
         test_data = [json.loads(line) for line in f]
 
-    
+def preprocess(inp):
+        data = inp
+        d = {'1,1':1,"1,2":1,"1,4":1,"1,3":1,"2,1":0,"2,2":1, '2,3':0, '2,4':1,'3,1':0,'3,2':1,'3,3':0,'3,4':1,'4,1':1,'4,2':1,'4,3':1,'4,4':1}
+        for x in data:
+
+            for j in range(1, len(x['pos_tags'])):
+                s = str(x['pos_tags'][j-1])+','+str(x['pos_tags'][j])
+                x['chunk_tags'][j] = d[s]
+        return data
+        
+
+# train_data = preprocess(train_data)
+# test_data = preprocess(test_data)
+
 def create_data(chunks, pos_tags):
     d = {}
     ones, zeros = 0, 0
     s = set()
     for i in range(len(chunks)):
         for j in range(1, len(chunks[i])):
-            key = str(pos_tags[i][j-1]) + "_" + str(pos_tags[i][j]) + "="  + str(chunks[i][j])
+            key = str(pos_tags[i][j-1]) + "," + str(pos_tags[i][j]) + "="  + str(chunks[i][j])
             d[key] = d.get(key, 0)+1
             if str(chunks[i][j])=='1':
                  ones+=1
@@ -26,7 +39,7 @@ def create_data(chunks, pos_tags):
     return d
 
 original_chunks, original_pos = [], []
-for i in test_data:
+for i in train_data:
      original_chunks.append(i['chunk_tags'])
      original_pos.append(i["pos_tags"])
 ori_d = create_data(original_chunks, original_pos)
@@ -34,13 +47,14 @@ ori_d = create_data(original_chunks, original_pos)
 #      print(k, v)
 
 model = Model()
-model.train(train_data, 2)
-model.test(train_data)
-print(model.weights)
-model.test(test_data)
-print(model.weights)
+model.load_weights()
+# model.train(train_data, 2)
+# model.test(train_data)
+# print(model.weights)
+# model.test(test_data)
+# print(model.weights)
 test_chunks, test_pos = [], []
-for i in test_data:
+for i in train_data:
     c, l = model.forward(i)
     test_chunks.append(c)
     test_pos.append(i['pos_tags'])
