@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 np.random.seed(41)
 
@@ -11,12 +12,12 @@ class Model():
     def __init__(self, learning_rate=0.1, momentum=0.9, threshold=0.5) -> None:
         self.learning_rate = learning_rate
         self.momentum = momentum
-        self.weights = np.random.rand(11, 1)
+        self.weights = np.random.rand(11, 1) 
         self.grad = np.zeros((11, 1))
         self.prev_grad = np.zeros((11, 1))
         self.threshold = threshold
-        nltk.download('punkt') 
-        nltk.download('averaged_perceptron_tagger')
+        # nltk.download('punkt') 
+        # nltk.download('averaged_perceptron_tagger')
         
 
     def sigmoid(self, z):
@@ -48,7 +49,7 @@ class Model():
     
     def preprocess_text(self, text):
         # Remove punctuation and convert to lowercase
-        text = text.lower()
+        # text = text.lower()
         tokens = word_tokenize(text)
         # Remove stopwords (common words like 'the', 'is', etc.)
         filtered_tokens = [word for word in tokens]
@@ -100,7 +101,7 @@ class Model():
             one_hot_curr_pos_tag = self.create_one_hot(pos_tags[i])
             input = np.concatenate((np.array([y_pred]), sos, one_hot_prev_pos_tag, one_hot_curr_pos_tag, np.array([-1.0]))) 
             y_logit = np.matmul(input, self.weights)[0]
-            y_pred = 1 if y_logit >= 0.5 else 0
+            y_pred = 1 if y_logit >= self.threshold else 0
             y_preds.append(y_pred)
         
         output = []
@@ -123,6 +124,8 @@ class Model():
         y_preds = []
         grad_y = np.zeros((11, 1))
         grad = np.zeros((11, 1))
+        grad_ts = np.zeros((len(pos_tags), 11, 1))
+
         for i in range(len(pos_tags)):
             if i==0:
                 one_hot_prev_pos_tag = np.zeros(4)
@@ -144,15 +147,22 @@ class Model():
             y_pred = 1 if y_logit >= self.threshold else 0
             y_preds.append(y_pred)
             accuracy += 1 if y_pred==y else 0
-            grad_y = np.clip(grad_y, -1, 1)
+
+
+            ################################################
+            #   Backpropagation Through Time
+            ################################################
+
+            grad_y = np.clip(grad_y, -1, 1) * self.weights[0,0]
             grad_y = grad_y + input.reshape(11, 1)
             # print(self.sigmoid_grad(y_logit))
-            grad += float(self.CrossEntropy_grad(y, y_logit)) * float(self.sigmoid_grad(y_logit)) * grad_y
+            # grad += float(y_logit - y) * (y_logit * (y_logit)) * grad_y
+            grad += float(self.CrossEntropy_grad(y=y, y_hat=y_logit)) * float(self.sigmoid_grad(y_hat=y_logit)) * grad_y
+            grad_ts[i] = copy.deepcopy(grad)
             # raise AssertionError
             loss += self.CrossEntropy(y, y_logit)
         
-        grad /= len(pos_tags)
-        self.grad = grad
+        self.grad = grad_ts.mean(axis=0)
         accuracy /= len(pos_tags)
         self.save_weights()
 

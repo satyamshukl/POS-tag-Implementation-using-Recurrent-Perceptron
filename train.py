@@ -100,10 +100,10 @@ def train(train_data, test_data, epochs, learning_rate=0.1, momentum=0.9, thresh
 
 
 if __name__ == "__main__":
-    with open('filtered_output.jsonl') as f:
+    with open('train.jsonl') as f:
         train_data = [json.loads(line) for line in f]
 
-    with open('filtered_output.jsonl') as f:
+    with open('test.jsonl') as f:
         test_data = [json.loads(line) for line in f]
 
-    train(train_data=train_data, test_data=test_data, epochs=2, learning_rate=0.1, momentum=0.9, threshold=0.5)
+    train(train_data=train_data, test_data=test_data, epochs=10, learning_rate=0.01, momentum=0.009, threshold=0.5)
