@@ -67,7 +67,7 @@ class Model():
     def get_pos_tags(self, sentence):
         preprocessed_tokens = self.preprocess_text(sentence)
         pos_tags = nltk.pos_tag(preprocessed_tokens, tagset='universal')
-        convert = {"NN":1, "DT":2, "JJ":3}
+        convert = {"NOUN":1, "PRON":1, "DET":2, "ADJ":3}
         output = [convert.get(i[1], 4) for i in pos_tags]
 
         return output

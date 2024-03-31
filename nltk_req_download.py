@@ -10,5 +10,6 @@ else:
 
 # nltk.download()
 
-nltk.download('punkt') 
+nltk.download('punkt')
+nltk.download('universal_tagset')
 nltk.download('averaged_perceptron_tagger')
